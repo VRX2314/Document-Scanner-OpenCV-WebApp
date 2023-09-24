@@ -66,18 +66,18 @@ def drawRectangle(img, biggest, thickness):
     return img
 
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 cap.set(10, 160)
 heightImg = 720
 widthImg = 1280
 
 firstBoot = True
 
-
+# st.set_page_config(layout="wide")
 st.title("Document Scanner v1.1")
-st.text("Name: Vansh Shah")
-st.text("Roll No: C093")
-left_column, right_column = st.columns([2.5, 5])
+st.text("Github: VRX2314")
+# st.text("Roll No: C093")
+left_column, right_column = st.columns([1, 2.5])
 
 with left_column:
     frame_vanilla = st.empty()
@@ -106,16 +106,15 @@ with left_column:
 
 with right_column:
     frame_print = st.empty()
-
-    right_1, right_2, right_3 = st.columns([2, 1.5, 1.5], gap="large")
+    right_1, right_2, right_3 = st.columns(3, gap="medium")
     with right_1:
-        capture = st.button("Capture Image")
+        capture = st.button("📸\n\nCapture", use_container_width=True)
     with right_2:
-        print_b = st.button("Print")
+        print_b = st.button("🖨️\n\nPrint", use_container_width=True)
     with right_3:
-        reset = st.button("Reset")
+        reset = st.button("❌\n\nClear", use_container_width=True)
 
-img_white = np.full((heightImg * 3, widthImg * 2, 3), 255, np.uint8)
+img_white = np.full((heightImg * 4, widthImg * 2, 3), 255, np.uint8)
 frame_print.image(img_white)
 
 while cap.isOpened():
@@ -177,6 +176,9 @@ while cap.isOpened():
         imgAdaptiveThre = cv2.adaptiveThreshold(imgWarpGray, 255, 1, 1, 7, 2)
         imgAdaptiveThre = cv2.bitwise_not(imgAdaptiveThre)
         imgAdaptiveThre = cv2.medianBlur(imgAdaptiveThre, 3)
+        img_white[100 : heightImg + 100, 640:1920] = cv2.cvtColor(
+            imgAdaptiveThre, cv2.COLOR_GRAY2BGR
+        )
     else:
         imgBigContour = cv2.putText(
             imgBlank,
@@ -189,11 +191,12 @@ while cap.isOpened():
             cv2.LINE_AA,
         )
 
+        img_white[100 : heightImg + 100, 640:1920] = imgBlank
+
     frame_big_C.image(imgBigContour, channels="BGR", caption="Card Detection")
     widthCanvas, heightCanvas, c = img_white.shape
 
-    img_white[100 : heightImg + 100, 640:1920] = imgBlank
-    frame_print.image(img_white)
+    frame_print.image(img_white, use_column_width=True, channels="BGR")
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
