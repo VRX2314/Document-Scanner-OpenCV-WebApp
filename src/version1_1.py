@@ -78,7 +78,7 @@ def drawRectangle(img, biggest, thickness):
 #     print(capstate)
 
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 cap.set(10, 160)
 heightImg = 720
 widthImg = 1280
@@ -131,6 +131,8 @@ with right_column:
     #     adaptive = st.checkbox("Use Threshold")
     # with right_3:
     #     reset = st.button("❌\n\nClear", use_container_width=True)
+    st.text("")
+    st.text("")
     print_b = st.button("🖨️\n\nPrint", use_container_width=True)
 
 frame_print.image(img_white)
