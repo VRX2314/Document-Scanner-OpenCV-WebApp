@@ -1,7 +1,6 @@
 import cv2
 import streamlit as st
 import numpy as np
-import tempfile
 import time
 
 
@@ -66,17 +65,33 @@ def drawRectangle(img, biggest, thickness):
     return img
 
 
-cap = cv2.VideoCapture(0)
+# def capture():
+#     global capstate
+#     if capstate == 0:
+#         capstate = 1
+
+#     elif capstate == 1:
+#         capstate = 2
+
+#     else:
+#         pass
+#     print(capstate)
+
+
+cap = cv2.VideoCapture(1)
 cap.set(10, 160)
 heightImg = 720
 widthImg = 1280
 
 firstBoot = True
 
+################################################## Streamlit UI ##################################################
+
 # st.set_page_config(layout="wide")
 st.title("Document Scanner v1.1")
 st.text("Github: VRX2314")
 # st.text("Roll No: C093")
+
 left_column, right_column = st.columns([1, 2.5])
 
 with left_column:
@@ -104,18 +119,23 @@ with left_column:
 
     frame_big_C = st.empty()
 
+img_white = np.full((heightImg * 4, widthImg * 2, 3), 255, np.uint8)
+
 with right_column:
     frame_print = st.empty()
-    right_1, right_2, right_3 = st.columns(3, gap="medium")
-    with right_1:
-        capture = st.button("📸\n\nCapture", use_container_width=True)
-    with right_2:
-        print_b = st.button("🖨️\n\nPrint", use_container_width=True)
-    with right_3:
-        reset = st.button("❌\n\nClear", use_container_width=True)
+    # right_1, right_2, right_3 = st.columns(3, gap="medium")
+    # with right_1:
+    #     capture = st.button("📸\n\nCapture", use_container_width=True)
+    # with right_2:
+    #     print_b = st.button("🖨️\n\nPrint", use_container_width=True)
+    #     adaptive = st.checkbox("Use Threshold")
+    # with right_3:
+    #     reset = st.button("❌\n\nClear", use_container_width=True)
+    print_b = st.button("🖨️\n\nPrint", use_container_width=True)
 
-img_white = np.full((heightImg * 4, widthImg * 2, 3), 255, np.uint8)
 frame_print.image(img_white)
+
+################################################## OpenCV Logic ##################################################
 
 while cap.isOpened():
     ret, img = cap.read()
@@ -129,39 +149,65 @@ while cap.isOpened():
     frame_vanilla.image(img, channels="BGR", caption="Input Stream")
 
     imgBlank = np.zeros((heightImg, widthImg, 3), np.uint8)
+    imgBuffer = np.zeros((heightImg, widthImg, 3), np.uint8)
+    emptyBuffer = np.zeros((heightImg, widthImg, 3), np.uint8)
 
-    imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # CONVERT IMAGE TO GRAY SCALE
-    imgBlur = cv2.GaussianBlur(imgGray, (5, 5), 1)  # ADD GAUSSIAN BLUR
+    # CONVERT IMAGE TO GRAY SCALE
+    imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    imgThreshold = cv2.Canny(imgBlur, thresh1, thresh2)  # APPLY CANNY BLUR
+    # ADD GAUSSIAN BLUR
+    imgBlur = cv2.GaussianBlur(imgGray, (5, 5), 1)
+
+    # APPLY CANNY BLUR
+    imgThreshold = cv2.Canny(imgBlur, thresh1, thresh2)
     kernel = np.ones((5, 5))
-    imgDial = cv2.dilate(imgThreshold, kernel, iterations=2)  # APPLY DILATION
-    imgThreshold = cv2.erode(imgDial, kernel, iterations=1)  # APPLY EROSION
+
+    # APPLY DILATION
+    imgDial = cv2.dilate(imgThreshold, kernel, iterations=2)
+
+    # APPLY EROSION
+    imgThreshold = cv2.erode(imgDial, kernel, iterations=1)
 
     frame_thresh.image(imgThreshold, caption="Thresholded Edges")
 
-    imgContours = img.copy()  # COPY IMAGE FOR DISPLAY PURPOSES
-    imgBigContour = img.copy()  # COPY IMAGE FOR DISPLAY PURPOSES
+    # COPY IMAGE FOR DISPLAY PURPOSES
+    imgContours = img.copy()
+    imgBigContour = img.copy()
+
+    # FIND ALL CONTOURS
     contours, hierarchy = cv2.findContours(
         imgThreshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-    )  # FIND ALL CONTOURS
-    cv2.drawContours(
-        imgContours, contours, -1, (0, 255, 0), 10
-    )  # DRAW ALL DETECTED CONTOURS
+    )
+
+    # DRAW ALL DETECTED CONTOURS
+    cv2.drawContours(imgContours, contours, -1, (0, 255, 0), 10)
 
     frame_contours.image(imgContours, channels="BGR", caption="Contours")
 
-    biggest, maxArea = biggestContour(contours)  # FIND THE BIGGEST CONTOUR
+    # FIND THE BIGGEST CONTOUR
+    biggest, maxArea = biggestContour(contours)
+    # print(capture)
+    # if capture:
+    #     print(capstate)
+    #     if capstate == 0:
+    #         capstate = 1
+
+    widthCanvas, heightCanvas, c = img_white.shape
+    # IF A CONTINUOS CONTOUR IS FOUND
     if biggest.size != 0:
         biggest = reorder(biggest)
-        cv2.drawContours(
-            imgBigContour, biggest, -1, (0, 255, 0), 20
-        )  # DRAW THE BIGGEST CONTOUR
+
+        # DRAW THE BIGGEST CONTOUR
+        cv2.drawContours(imgBigContour, biggest, -1, (0, 255, 0), 20)
+
+        # PREPARE POINTS FOR WARP
         imgBigContour = drawRectangle(imgBigContour, biggest, 2)
-        pts1 = np.float32(biggest)  # PREPARE POINTS FOR WARP
+
+        # PREPARE POINTS FOR WARP
+        pts1 = np.float32(biggest)
         pts2 = np.float32(
             [[0, 0], [widthImg, 0], [0, heightImg], [widthImg, heightImg]]
-        )  # PREPARE POINTS FOR WARP
+        )
         matrix = cv2.getPerspectiveTransform(pts1, pts2)
         imgWarpColored = cv2.warpPerspective(img, matrix, (widthImg, heightImg))
 
@@ -176,9 +222,15 @@ while cap.isOpened():
         imgAdaptiveThre = cv2.adaptiveThreshold(imgWarpGray, 255, 1, 1, 7, 2)
         imgAdaptiveThre = cv2.bitwise_not(imgAdaptiveThre)
         imgAdaptiveThre = cv2.medianBlur(imgAdaptiveThre, 3)
+
+        # ADD SCAN IMAGE TO THE WHITE CANVAS IMAGE
+
         img_white[100 : heightImg + 100, 640:1920] = cv2.cvtColor(
             imgAdaptiveThre, cv2.COLOR_GRAY2BGR
         )
+        img_white[heightCanvas - 820 : heightCanvas - 100, 640:1920] = imgWarpColored
+
+    # KEEP OUTPUT AS NOT DETECTED
     else:
         imgBigContour = cv2.putText(
             imgBlank,
@@ -191,16 +243,19 @@ while cap.isOpened():
             cv2.LINE_AA,
         )
 
+        img_white[heightCanvas - 820 : heightCanvas - 100, 640:1920] = imgBlank
         img_white[100 : heightImg + 100, 640:1920] = imgBlank
 
     frame_big_C.image(imgBigContour, channels="BGR", caption="Card Detection")
-    widthCanvas, heightCanvas, c = img_white.shape
 
     frame_print.image(img_white, use_column_width=True, channels="BGR")
 
+    if print_b:
+        cv2.imwrite(f"./{time.time()}.png", img_white)
+        print_b = False
+
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
-
 
 cap.release()
 cv2.destroyAllWindows()
