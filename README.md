@@ -2,6 +2,8 @@
 
 An OpenCV based Document Scanner Web Application with OCR features extending upon the implementation of Murtaza Hassan (https://github.com/murtazahassan). OCR processing implemented using Pytesseract model.  UI built using streamlit.
 
+⚠️ Due to DNS issues images may not load, all preview images are located in ./img folder
+
 ## Preview GIF
 
 ![Preview](./img/preview.gif "Preview")
