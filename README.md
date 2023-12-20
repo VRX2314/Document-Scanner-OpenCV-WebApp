@@ -25,11 +25,11 @@ Skewed Image Correction
 
 ### Optical Character Recognition
 
-![OCR](./img/ocr.png "OCR")
+![OCR](./img/roi.png "OCR")
 
 ### ROI for Background Reduction
 
-![ROI](./img/roi.png "ROI")
+![ROI](./img/ocr.png "ROI")
 
 
 
